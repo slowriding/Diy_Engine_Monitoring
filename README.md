@@ -35,3 +35,7 @@ Programming:
 	
 
 Please consider contributing to this evolving project as much can be improved
+
+Files: 
+	Schmatic: See .pdf files in root or Open directorys in KiCAD One is the PCB and the other shows the wiring currenly used on authors Tahoe
+ 	Code: Open Using Arduino software 
