@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "tahoe_symbols")(type "KiCad")(uri "/Users/kennethadkison/syncthing/tahoe/KiCAD/Tahoe-symbols/New_Library.kicad_sym")(options "")(descr ""))
+)

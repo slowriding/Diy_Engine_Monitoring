@@ -1,0 +1,13 @@
+(kicad_sch
+	(version 20231120)
+	(generator "eeschema")
+	(generator_version "8.0")
+	(uuid "69c0a624-c9ad-4bbb-b7a4-1455551613d2")
+	(paper "A4")
+	(title_block
+		(title "Tahoe_Inputs")
+		(date "2023-12-20")
+		(rev "0.7")
+	)
+	(lib_symbols)
+)
