@@ -49,7 +49,7 @@
 
   #define DS18B20         // 1-wire temp sensors
   // #define DEBUG1        // AD RAW & limiter display - Comment this out if you don't need to see what happens in the serial Monitor
-  // #define DEBUG2        // Nextion display command feed - Comment this out if you don't need to see
+  #define DEBUG2        // Nextion display command feed - Comment this out if you don't need to see
   // #define DEBUG3        // Mapped values - Comment this out if you don't need to see what happens in the serial Monitor
   // #define FAKE
   // #define OUTPUT_TEST
@@ -84,6 +84,7 @@ void output_test()
       for(i=75; i<=254; i++) {
         analogWrite(fan1_pin, i);
         sendCmd(nexOut[0].text + String(i));
+        ad_in(I_FAN1, analogRead(i_fan1));
         delay(50);
       }
       analogWrite(fan1_pin, 0);
@@ -93,6 +94,7 @@ void output_test()
       for(i=75; i<=254; i++) {
         analogWrite(fan2_pin, i);
         sendCmd(nexOut[1].text + String(i));
+        ad_in(I_FAN2, analogRead(i_fan2));
         delay(50);
       }
       analogWrite(fan2_pin, 0);
@@ -102,20 +104,25 @@ void output_test()
       analogWrite(fan1_pin, 254);
       sendCmd(nexOut[0].text + String(254));
       delay(2000);
+      ad_in(I_FAN1, analogRead(i_fan1));
       analogWrite(fan1_pin, 0);
       sendCmd(nexOut[0].text + String(0));
       delay(500);
+      ad_in(I_FAN1, analogRead(i_fan1));
       analogWrite(fan2_pin, 254);
       sendCmd(nexOut[1].text + String(254));
       delay(2000);
+      ad_in(I_FAN2, analogRead(i_fan2));
       analogWrite(fan2_pin, 0);
       sendCmd(nexOut[1].text + String(0));
       delay(500);
+      ad_in(I_FAN2, analogRead(i_fan2));
 
       for(i=0; i<=254; i++) {
         analogWrite(pwm_ac_pin, i);
         sendCmd(nexOut[2].text + String(i));
         delay(50);
+        ad_in(I_COMP, analogRead(I_COMP));
       }
       analogWrite(pwm_ac_pin, 0);
       sendCmd(nexOut[2].text + String(0));
@@ -123,9 +130,11 @@ void output_test()
         analogWrite(pwm_ac_pin, 254);
         sendCmd(nexOut[2].text + String(254));
         delay(250);
+        ad_in(I_COMP, analogRead(I_COMP));
         analogWrite(pwm_ac_pin, 0);
         sendCmd(nexOut[2].text + String(0));
         delay(250);
+        ad_in(I_COMP, analogRead(I_COMP));
       }
 
 
@@ -148,12 +157,14 @@ void output_test()
         analogWrite(pwm_fuel_pin, i);
         sendCmd(nexOut[3].text + String(i));
         delay(50);
+        ad_in(I_FUEL, analogRead(i_fuel));
       }
       analogWrite(pwm_fuel_pin, 0);
         digitalWrite(fuel_en_pin, 0);
         sendCmd(nexOut[3].text + String(0));
         sendCmd(nexOut[9].bco + String(12678));
         sendCmd(nexOut[9].pco + String(65504));
+        ad_in(I_FUEL, analogRead(i_fuel));
 
       for(i=0; i<=5; i++) {
         analogWrite(mil_pin, 254);
@@ -226,12 +237,12 @@ void ad_in(uint16_t ad, uint16_t raw)  // Process A/D input
         if(raw < cal[ad].rawHi)  raw = cal[ad].rawHi;    // safety if all else fails 
       }
       */
-      DUMP(ad);
-      DUMP(raw);
+      //DUMP(ad);
+      //DUMP(raw);
       curr_val[ad] = map(raw, cal[ad].rawLo, cal[ad].rawHi, cal[ad].calLo, cal[ad].calHi);   // apply calibrations to A/D inputs
-      DUMP(curr_val[ad]);
+      //DUMP(curr_val[ad]);
 
-      if(curr_val[ad] != last_val[ad]) {    // if the results have not changed from the last value, don't bother updating
+      //if(curr_val[ad] != last_val[ad]) {    // if the results have not changed from the last value, don't bother updating
 
         if(damping[ad] != 0) {    // dampen fuel gauge from displaying slosh   *********** test **********
           curr_val[ad] = (unsigned long)((last_val[ad] * damping[ad]) + (curr_val[ad] * (1 - damping[ad])));  // New value updates old value at most by 20%
@@ -250,7 +261,7 @@ void ad_in(uint16_t ad, uint16_t raw)  // Process A/D input
         sendCmd(nexObj[ad].gauge + String(map(curr_val[ad], gauge[ad].start, gauge[ad].stop, 0, 100)));  // update bar graph
         
         last_val[ad] = curr_val[ad];
-      }
+      //}
     }
   }
   
@@ -377,7 +388,6 @@ void loop() {  // MAIN LOOP ****************************************************
 
   //  we have all values
   #ifdef DEBUG1 
-    // AD_print_all();
     dbgSer.print("rpm = ");
     dbgSer.print(rpm);
     dbgSer.print(" , vss = ");
@@ -421,10 +431,16 @@ void loop() {  // MAIN LOOP ****************************************************
     ad_in(I_FAN1, analogRead(i_fan1));
     ad_in(I_FAN2, analogRead(i_fan2));
 
-    ad_in(THR,    analogRead(thr_pin));
-    ad_in(MAP,    analogRead(map_pin));
-
+    //ad_in(THR,    analogRead(thr_pin));
+    //ad_in(MAP,    analogRead(map_pin))
   
+
+  if(digitalRead(oil_lvl_pin) == 0) sendCmd("oil_lvl.val=" + 1);
+  else sendCmd("oil_lvl.val=" + 0);
+  
+  if(digitalRead(cool_lvl_pin) == 0) sendCmd("coollvl.val=" + 1);
+  else sendCmd("coollvl.val=" + 0);
+  /*
   if(nexSer.available() > 0)  // read data strings from Nextion Display
   {
     char Received = dbgSer.read();
@@ -492,4 +508,5 @@ void loop() {  // MAIN LOOP ****************************************************
   }
   sendCmd(nexOut[0].text + String(fan1));
   sendCmd(nexOut[1].text + String(fan2));
+  */
 }  // loop

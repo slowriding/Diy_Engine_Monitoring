@@ -6,7 +6,7 @@
     "hidden_netclasses": [],
     "hidden_nets": [],
     "high_contrast_mode": 0,
-    "net_color_mode": 2,
+    "net_color_mode": 1,
     "opacity": {
       "images": 0.6,
       "pads": 1.0,
@@ -19,7 +19,7 @@
       "footprints": true,
       "graphics": true,
       "keepouts": true,
-      "lockedItems": true,
+      "lockedItems": false,
       "otherItems": true,
       "pads": true,
       "text": true,
@@ -34,7 +34,6 @@
       3,
       4,
       5,
-      7,
       8,
       9,
       10,
@@ -62,11 +61,10 @@
       34,
       35,
       36,
-      37,
       39,
       40
     ],
-    "visible_layers": "ffd98b0_ffffffff",
+    "visible_layers": "fffffff_ffffffff",
     "zone_display_mode": 0
   },
   "git": {
@@ -76,14 +74,14 @@
     "ssh_key": ""
   },
   "meta": {
-    "filename": "DIY_Engine_monitoring-06.kicad_prl",
+    "filename": "Harness_DIY_Engine_monitoring-06.kicad_prl",
     "version": 3
   },
   "project": {
     "files": [
       {
-        "name": "DIY_Engine_monitoring-06.kicad_sch",
-        "open": false,
+        "name": "Harness_DIY_Engine_monitoring-06.kicad_sch",
+        "open": true,
         "window": {
           "display": 0,
           "maximized": false,

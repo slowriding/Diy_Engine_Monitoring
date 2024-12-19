@@ -230,10 +230,10 @@ struct nexGauge {   // LCD Touchscreen text strings used to transfer data  // SH
 
 nexGauge nexObj[23] = {
   // Nom,     raw,         text         gauge        color       
-  {"i_fuel",  "n43.val=", "n73.val=",  "j73.pco=",  ""},   // A0-i_fuel,   nexObg[0]  
-  {"i_comp",  "n42.val=", "n72.val=",  "j72.pco=",  ""},   // A1-i_comp,   nexObg[1]  
-  {"i_fan1",  "n40.val=", "n70.val=",  "j70.pco=",  ""},   // A2-i_fan1,   nexObg[2]  
-  {"i_fan2",  "n41.val=", "n71.val=",  "j71.pco=",  ""},   // A3-i_fan2,   nexObg[3]  
+  {"i_fuel",  "n43.val=", "n73.val=",  "",  "j73.pco="},   // A0-i_fuel,   nexObg[0]  
+  {"i_comp",  "n42.val=", "n72.val=",  "",  "j72.pco="},   // A1-i_comp,   nexObg[1]  
+  {"i_fan1",  "n40.val=", "n70.val=",  "",  "j70.pco="},   // A2-i_fan1,   nexObg[2]  
+  {"i_fan2",  "n41.val=", "n71.val=",  "",  "j71.pco="},   // A3-i_fan2,   nexObg[3]  
   {"oil_t",   "n4.val=",  "n14.val=",  "j14.pco=",  ""},   // A4-oil_t,    nexObg[4]  
 
   {"cool_t", "n3.val=",   "n13.val=",  "j13.val=",  "j13.pco="},   // A5-cool_t,   nexObg[5]  
@@ -253,7 +253,7 @@ nexGauge nexObj[23] = {
   {"evap",   "",          "t15.val=",  "",          "t15.pco="},    // 17- Fuel vapor evaprative valve closed
   {"mil",    "",          "t20.val=",  "",          "t20.pco="},    // 18- Engine Light
   {"fuel_en","",          "t13.val=",  "",          "t13.pco="},    // 19- Fuel pump speed control active
-  {"cool_lvl","",         "coollvl.val=","",        "coollvl.pco="},// 20- Coolant Low}
+  {"cool_lvl","",         "coollvl.val=","",        "coollvl.pco="},// 20- Coolant Low   **** add oil lvl low
   {"acreq","",            "acreq.val=","",          "acreq.pco="},  // 21- A/C Requested}
   {"recirc","",           "crecirc.val=","",        "recirc.pco="}, // 22- A/C Recirc selected}
   // {"loadG",   "j11.val=", "",          "n11.val=",  "j11.pco="},   // 16- 4- load
