@@ -78,19 +78,6 @@
     "version": 3
   },
   "project": {
-    "files": [
-      {
-        "name": "Harness_DIY_Engine_monitoring-06.kicad_sch",
-        "open": true,
-        "window": {
-          "display": 0,
-          "maximized": false,
-          "pos_x": 44,
-          "pos_y": 39,
-          "size_x": 1666,
-          "size_y": 1068
-        }
-      }
-    ]
+    "files": []
   }
 }

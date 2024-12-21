@@ -5,11 +5,11 @@
 	(uuid "3229de9f-5b55-4e9c-b1f3-fd12b3e2339d")
 	(paper "USLetter")
 	(title_block
-		(title "Tahoe_md_wiring")
-		(date "2024-12-08")
-		(rev "0.3")
+		(title "Harness_DIY_Engine_monitoring")
+		(date "2024-12-19")
+		(rev "0.6")
 		(comment 1 "Wiring harness & power driver schematic")
-		(comment 2 "Pairs with Tahoe_mb versioson 0.4 & 0.5")
+		(comment 2 "Pairs with PCB_DIY_Engine_Monitoring")
 	)
 	(lib_symbols
 		(symbol "Connector:Conn_01x02_Pin"

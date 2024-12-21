@@ -4,14 +4,13 @@
 
 #define nexSer Serial1 // Controlling the Nextion HMI using serial1 (pin18 of the Arduino Mega) to prevent interfering with code upload
 #define dbgSer Serial // Debug using default serial over USB towards Arduino serial Monitor
-DS18B20 ds(36);
+
 
 // int idx = 0;
 // uint32_t last = 0, now = 0;  // for speed test
 uint32_t i = 0;   // wire buffer
 
 // int fake=0;    // fake data sequencer
-
 // Variables used in logic control
 
 // OBD2 decoded data from Freematics
@@ -51,7 +50,7 @@ const int ac_recirc_pin= 33;
 const int oil_lvl_pin  = 28;
 const int cool_lvl_pin = 32;
 
-// const int one_wire_pin = A13;
+DS18B20 ds(36);  // reworked fix to PCB
 
 // OUTPUTS
 const int pwm_ac_pin   = 2;
@@ -147,6 +146,11 @@ int      ac_comp   = 0;
 #define THR    11
 #define MAP    12
 
+#define MPG    13
+#define RPM    14
+#define AIRT   15
+#define ACT    16
+
 
 struct calVal {
   uint16_t rawLo;   // lowest A/D RAW sensor reading
@@ -160,27 +164,27 @@ calVal cal[13] = {          // used to map sensor raw values to real units
   {0,1023,0,10},  // i_comp  A1  uncal'd
   {0,1023,0,10},  // i_fan1  A2  uncal'd
   {0,1023,0,10},  // i_fan2  A3  uncal'd
-  {13230, 57,    0, 212},   // A4-oil_t, VERIFY CAL - (12760 measured cold - connected?)
-  {13230, 57,    0, 212},   // A5-cool_t, R1 & R3 330Ω , 5600-56Ω, -2 - 212F, a/d 970-552 - calculated - (13334 measured cold - connected?)
+  {493,   133,   60, 290},  // A4-oil_t, cal'd Dec 19, 2024 
+  {483,   150,   60, 290},  // A5-cool_t, R1 & R3 330Ω , 5600-56Ω, -2 - 212F, a/d 970-552 - calculated - (13334 measured cold - connected?)
                             // VDO coolant sensor 325-001 marked - VDO germany - D - 6-24 V - max 120C - 801/2/1 - 6 97
-  {102,  308,  0, 30},    // A6-fuel_l, CAL-e-e 12/24, R1 & R3 330Ω, 41-250Ω E-F, 0-30 gal, a/d 542-653 - calculated CAL'D should be good - (13338 measured full - connected?)
+  {102,   308,   0, 30},    // A6-fuel_l, CAL-e-e 12/24, R1 & R3 330Ω, 41-250Ω E-F, 0-30 gal, a/d 542-653 - calculated CAL'D should be good - (13338 measured full - connected?)
   {7760,  23600, 0, 7},     // A7-evap_p, PN# 09430128 BX22298 Holds @ 10 in. HO2  0psi=1.457V 7760,  6.5 4.53v" 23600  cal'd E-E
                             // {7080,  24140, 0, 15},    // 7-evap_p, PN# 12209219 4125A Holds @ 10 in. HO2  0psi=1.37V 7330,  7" 4.60v" 23660  cal'd e-e
-  {2240,  22550, 0, 80},    // A8-fuel_p,  0psi 2240,  80psi=22550 4.29v @ 80psi-sensor  CAL'D end-end
-                            // {2240,  22550, 0, 80},   // 6-fuel_p, 0psi 0.6v 2440, 100psi=3.59v 15950, 150psi-sensor  CAL'D end-end
+  {90,    890,   0, 80},    // A8-fuel_p,  0psi 2240,  80psi=22550 4.29v @ 80psi-sensor  CAL'D end-end
+                            // {2240,  22550, 0, 80},   // 6-fuel_p, 0psi 0.6v 2440, 100psi=3.59v 15950, (100-psi sensor  CAL'D end-end 12/2024)
   {2700,  23865, 0, 150},   // A9-ac_hp - (0-400psi min - not connected)
   {2650,  24220, 0, 100},   // A10-oil_p. oil_p = (((oil_p2 / 204.6) * 32) - 16) - (65526 measured idle - connected?)
                             // {2630,  25165, 0, 100},   // 10-oil_p1 = (((oil_p1 / 204.6) * 32) - 16);  E-ROD
-  {296,  840, 0, 100},   // A11-thr, 0.5 – 4.5 volt signal ranging from 0 – 100 % - CAL'D
-  {296,     840,  0, 100},   // A12-MAP
+  {296,   840,   0, 100},   // A11-thr, 0.5 – 4.5 volt signal ranging from 0 – 100 % - CAL'D
+  {296,   840,   0, 100},   // A12-MAP
 };
 
-int fake_raw[15]        = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0};
-int curr_val[15]        = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0}; // integer equivalent  -- Should this be type int? ---------------?
-int last_val[15]        = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0}; // prior displayed point used to smooth movement of pointer to next location
-float damping[15]       = {.2,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0}; // Dampening factor set max change allowed per update (20% = 0.2)
-uint16_t refresh[15]    = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0}; // milliseconds between updates
-uint16_t timeTarget[15] = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0}; // Rolling target for next refresh
+int      fake_raw[15]   = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0};
+int      curr_val[15]   = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0};   // integer equivalent  -- Should this be type int? ---------------?
+int      last_val[15]   = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0};   // prior displayed point used to smooth movement of pointer to next location
+float    damping[15]    = {.2,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0};   // Dampening factor set max change allowed per update (20% = 0.2)
+uint16_t refresh[15]    = {0,0,0,0,500,  0,0,0,0,0, 0,0,0,0,0}; // milliseconds between updates
+uint16_t timeTarget[15] = {0,0,0,0,0,  0,0,0,0,0, 0,0,0,0,0};   // Rolling target for next refresh
 
 
 struct settings { 
@@ -211,7 +215,7 @@ settings gauge[15] = {
   {0,0, 0,50,55,58,     62,65,65,80},     // A8 fuel_pG  // working
   
   {0,0, 0,0,0,0,        0,0,200,200},     // A9 ac_hpG  // spasing
-  {0,0, 0,15,25,30,     55,70,80,100},    // A10 oil_pG  // connected
+  {0,0, 0,15,25,30,     55,70,80,100},    // A10 oil_pG // connected
   {0,0, 0,0,0,0,        0,90,90,100},     // A11 thrG
   {0,0, 0,0,0,0,        0,0,0,0},         // A12 map
   {0,0, 0,0,0,0,        0,0,0,0},         // A13 vss
@@ -228,58 +232,59 @@ struct nexGauge {   // LCD Touchscreen text strings used to transfer data  // SH
 };
 
 
-nexGauge nexObj[23] = {
-  // Nom,     raw,         text         gauge        color       
-  {"i_fuel",  "n43.val=", "n73.val=",  "",  "j73.pco="},   // A0-i_fuel,   nexObg[0]  
-  {"i_comp",  "n42.val=", "n72.val=",  "",  "j72.pco="},   // A1-i_comp,   nexObg[1]  
-  {"i_fan1",  "n40.val=", "n70.val=",  "",  "j70.pco="},   // A2-i_fan1,   nexObg[2]  
-  {"i_fan2",  "n41.val=", "n71.val=",  "",  "j71.pco="},   // A3-i_fan2,   nexObg[3]  
-  {"oil_t",   "n4.val=",  "n14.val=",  "j14.pco=",  ""},   // A4-oil_t,    nexObg[4]  
+nexGauge nexObj[24] = {
+  // Nom,     raw,         text          gauge        color       
+  {"i_fuel",  "n43.val=", "n73.val=",    "",          "j73.pco="},    // A0-i_fuel,   nexObg[0]  
+  {"i_comp",  "n42.val=", "n72.val=",    "",          "j72.pco="},    // A1-i_comp,   nexObg[1]  
+  {"i_fan1",  "n40.val=", "n70.val=",    "",          "j70.pco="},    // A2-i_fan1,   nexObg[2]  
+  {"i_fan2",  "n41.val=", "n71.val=",    "",          "j71.pco="},    // A3-i_fan2,   nexObg[3]  
+  {"oil_t",   "n4.val=",  "n14.val=",    "j14.val=",  "j14.pco="},    // A4-oil_t,    nexObg[4]  
 
-  {"cool_t", "n3.val=",   "n13.val=",  "j13.val=",  "j13.pco="},   // A5-cool_t,   nexObg[5]  
-  {"fuel_l", "n5.val=",   "n15.val=",  "j15.pco=",  ""},   // A6-fuel_lG,  nexObg[6]
-  {"evap",   "n7.val=",   "n17.val=",  "j17.pco=",  ""},   // A7-evap,     nexObg[7]  
-  {"fuel_p", "n6.val=",   "n16.val=",  "j16.pco=",  ""},   // A8-fuel_p,   nexObg[8]  
-  {"ac_hp",  "n20.val=",  "n30.val=",  "j30.pco=",  ""},   // A9-ac_hp,    nexObg[9]  
+  {"cool_t", "n3.val=",   "n13.val=",    "j13.val=",  "j13.pco="},    // A5-cool_t,   nexObg[5]  
+  {"fuel_l", "n5.val=",   "n15.val=",    "j15.pco=",  ""},            // A6-fuel_lG,  nexObg[6]
+  {"evap",   "n7.val=",   "n17.val=",    "j17.pco=",  ""},            // A7-evap,     nexObg[7]  
+  {"fuel_p", "n6.val=",   "n16.val=",    "j16.pco=",  ""},            // A8-fuel_p,   nexObg[8]  
+  {"ac_hp",  "n20.val=",  "n30.val=",    "j30.pco=",  ""},            // A9-ac_hp,    nexObg[9]  
 
-  {"oil_p",  "n2.val=",   "n12.val=",  "j12.val=",  "j12.pco="},   // A10-oil_p,   nexObg[10]  
-  {"thr",    "n8.val=",   "n18.val=",  "j18.pco=",  ""},           // A11-thr,     nexObg[11]  
-  {"map",    "n9.val=",   "n19.val=",  "j19.pco=",  ""},           // A12-map,     nexObg[12]  
-  {"mph",    "n0.val=",   "n10.val=",  "j10.val=",  "j10.pco="},   // 13 A14-mph,     nexObg[13]
-  {"rpm",    "n1.val=",   "n11.val=",  "j11.val=",  "j11.pco="},   // 14 A15-rpm,     nexObg[14]
+  {"oil_p",  "n2.val=",   "n12.val=",    "j12.val=",  "j12.pco="},    // A10-oil_p,   nexObg[10]  
+  {"thr",    "n8.val=",   "n18.val=",    "j18.pco=",  ""},            // A11-thr,     nexObg[11]  
+  {"map",    "n9.val=",   "n19.val=",    "j19.pco=",  ""},            // A12-map,     nexObg[12]  
+  {"mph",    "n0.val=",   "n10.val=",    "j10.val=",  "j10.pco="},    // 13 A14-mph,  nexObg[13]
+  {"rpm",    "n1.val=",   "n11.val=",    "j11.val=",  "j11.pco="},    // 14 A15-rpm,  nexObg[14]
 
-  {"out_t",  "",          "n32.val=",  "",          "n32.pco="},    // 15- air_temp
-  {"cond_t", "",          "n31.val=",  "",          "n31.pco="},    // 16- AC-condenser_temp
-  {"evap",   "",          "t15.val=",  "",          "t15.pco="},    // 17- Fuel vapor evaprative valve closed
-  {"mil",    "",          "t20.val=",  "",          "t20.pco="},    // 18- Engine Light
-  {"fuel_en","",          "t13.val=",  "",          "t13.pco="},    // 19- Fuel pump speed control active
-  {"cool_lvl","",         "coollvl.val=","",        "coollvl.pco="},// 20- Coolant Low   **** add oil lvl low
-  {"acreq","",            "acreq.val=","",          "acreq.pco="},  // 21- A/C Requested}
-  {"recirc","",           "crecirc.val=","",        "recirc.pco="}, // 22- A/C Recirc selected}
-  // {"loadG",   "j11.val=", "",          "n11.val=",  "j11.pco="},   // 16- 4- load
-  // {"advG",    "j12.val=", "",          "n12.val=",  "j12.pco="},   // 17- 5- adv
-  // {"voltsG",  "j13.val=", "",          "n13.val=",  "j13.pco="},   // 18- 6- volts
+  {"out_t",    "",        "n32.val=",    "",          "n32.pco="},    // 15- air_temp
+  {"cond_t",   "",        "n31.val=",    "",          "n31.pco="},    // 16- AC-condenser_temp
+  {"evap",     "",        "t15.val=",    "",          "t15.pco="},    // 17- Fuel vapor evaprative valve closed
+  {"mil",      "",        "t20.val=",    "",          "t20.pco="},    // 18- Engine Light
+  {"fuel_en",  "",        "t13.val=",    "",          "t13.pco="},    // 19- Fuel pump speed control active
+  {"oil_lvl",  "",        "oillvl.val=", "",          "oilLvl.bco="}, // 20- Coolant Low   **** add oil lvl low
+  {"cool_lvl", "",        "coollvl.val=","",          "coolLvl.bco="},// 21- Coolant Low   **** add oil lvl low
+  {"acreq",    "",        "acreq.val=",  "",          "acreq.pco="},  // 22- A/C Requested}
+  {"recirc",   "",        "crecirc.val=","",          "recirc.pco="}, // 23- A/C Recirc selected}
+  // {"loadG",  "j11.val=", "",          "n11.val=",  "j11.pco="},    // 16- 4- load
+  // {"advG",   "j12.val=", "",          "n12.val=",  "j12.pco="},    // 17- 5- adv
+  // {"voltsG", "j13.val=", "",          "n13.val=",  "j13.pco="},    // 18- 6- volts
 };
 
-struct nexOutputs {   // LCD Touchscreen text strings used to transfer data  // SHOULD BE raw, val, gauge, pco
+struct nexOutputs { // LCD Touchscreen text strings used to transfer data  // SHOULD BE raw, val, gauge, pco
   char astext[15];  // Human readable name - used for debug
   char raw[15];     // raw A/D input for debugging
   char text[15];    // gauge value in uint
-  char bco[15];   // Bar Graphs and such
+  char bco[15];     // Bar Graphs and such
   char pco[15];     // forground color
 };
 
 nexOutputs nexOut[12] = {
   // Nom,       current,     text         background   forground       
-  {"PWM_FAN1",  "n70.val=",  "n40.val=",  "",          ""},          // D4-fan1,     nexOut[0]  
-  {"PWM_FAN2",  "n71.val=",  "n41.val=",  "",          ""},          // D5-fan2,     nexOut[1]  
-  {"PWM_AC",    "n72.val=",  "n42.val=",  "",          ""},          // D2-pwm_ac,   nexOut[2]  
-  {"PWM_FUEL",  "n73.val=",  "n43.val=",  "",          ""},          // D3-pwm_fuel, nexOut[3]
-  {"MPH_G",     "",          "n44.val=",  "",          ""},          // D11-mph_g,   nexOut[4]
-  {"FUEL_G",    "",          "n45.val=",  "",          ""},          // D8-mph_g,    nexOut[5]
-  {"OIL_G",     "",          "n46.val=",  "",          ""},          // D9-mph_g,    nexOut[6]
-  {"TEMP_G",    "",          "n47.val=",  "",          ""},          // D6-mph_g,    nexOut[7]
-  {"VOLT_G",    "",          "n48.val=",  "",          ""},          // D7-mph_g,    nexOut[8]
+  {"PWM_FAN1",  "n70.val=",  "n40.val=",  "",          ""},            // D4-fan1,     nexOut[0]  
+  {"PWM_FAN2",  "n71.val=",  "n41.val=",  "",          ""},            // D5-fan2,     nexOut[1]  
+  {"PWM_AC",    "n72.val=",  "n42.val=",  "",          ""},            // D2-pwm_ac,   nexOut[2]  
+  {"PWM_FUEL",  "n73.val=",  "n43.val=",  "",          ""},            // D3-pwm_fuel, nexOut[3]
+  {"MPH_G",     "",          "n44.val=",  "",          ""},            // D11-mph_g,   nexOut[4]
+  {"FUEL_G",    "",          "n45.val=",  "",          ""},            // D8-mph_g,    nexOut[5]
+  {"OIL_G",     "",          "n46.val=",  "",          ""},            // D9-mph_g,    nexOut[6]
+  {"TEMP_G",    "",          "n47.val=",  "",          ""},            // D6-mph_g,    nexOut[7]
+  {"VOLT_G",    "",          "n48.val=",  "",          ""},            // D7-mph_g,    nexOut[8]
   {"FUEL_EN",   "",          "",          "t13.bco=",   "t13.pco="},   // D10-mph_g,   nexOut[9]
   {"EVAP_S",    "",          "",          "t15.bco=",   "t15.pco="},   // D13-mph_g,   nexOut[10]
   {"MIL",       "",          "",          "t20.bco=",   "t20.pco="},   // D14-mph_g,   nexOut[11]

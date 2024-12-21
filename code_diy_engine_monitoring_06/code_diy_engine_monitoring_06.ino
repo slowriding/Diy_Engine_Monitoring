@@ -7,10 +7,7 @@
   *
   * Revison History
   *
-  * ToDo List
-  *   Add Screen dimming
-  *
-  * Remaned and pushed to GitHub now DIY_engine_monitoring_06 - Dec 14, 2024 
+  * Renamed and pushed to GitHub now DIY_engine_monitoring_06 - Dec 14, 2024 
   * tahoe_mb_b_0_4.ino - pins reumbered
   * Major Revision - Revised PCB - All 5V Mega2560 based
   * tahoe_nex_07.ino - abandaning CAN - adding fan and AC speed controllers
@@ -19,7 +16,7 @@
   * taheo_nex_05.ino - A/D works and displays on nextion, partly functional, no CAN
   * tahoe_nex_04.ino - Added previous looping structure to OBD2 PID data processsing 
   * tahoe_nex_03.ino 4/2/2024 - Restructured to loop through structures of A/D readings, calibrations, and display objects.  
-  *   Reused loops shortens code providing a better structure for expanded desplay fuctionality later.
+  *   Reused loops shortens code providing a better structure for expanded desplay functionality later.
   * tahoe_nex_02.ino - First version with working Nextion display working from A/D data
   *
   /*************************************************************************************************
@@ -47,12 +44,13 @@
 
   #include "tahoe.h"  // definitions and calibrations
 
-  #define DS18B20         // 1-wire temp sensors
+  #define DS18B20          // 1-wire temp sensors
   // #define DEBUG1        // AD RAW & limiter display - Comment this out if you don't need to see what happens in the serial Monitor
-  #define DEBUG2        // Nextion display command feed - Comment this out if you don't need to see
+  // #define DEBUG2        // Nextion display command feed - Comment this out if you don't need to see
   // #define DEBUG3        // Mapped values - Comment this out if you don't need to see what happens in the serial Monitor
-  // #define FAKE
-  // #define OUTPUT_TEST
+  // #define FAKE          // Faking data for bench testing without sensors
+  // #define OUTPUT_TEST   // Driver outputs exercised for testing
+  #define WIRE
   #define TRACER
 
   #ifdef TRACER
@@ -307,7 +305,7 @@ void setup() {
   pinMode(evap_pin, OUTPUT);
 
 
-  for(i=0; i<=23; i++)  // send zeros to all display objects  *** KEEP UP TO DATE
+  for(i=0; i<=24; i++)  // send zeros to all display objects  *** KEEP UP TO DATE
     {
     sendCmd(nexObj[i].raw + String(0));
     sendCmd(nexObj[i].text + String(0));
@@ -434,13 +432,12 @@ void loop() {  // MAIN LOOP ****************************************************
     //ad_in(THR,    analogRead(thr_pin));
     //ad_in(MAP,    analogRead(map_pin))
   
+  if(digitalRead(oil_lvl_pin) == 0) sendCmd("oilLvl.bco=" + String(63488));  // low oil
+  else sendCmd("oilLvl.bco=" + String(26508));   // has oil
 
-  if(digitalRead(oil_lvl_pin) == 0) sendCmd("oil_lvl.val=" + 1);
-  else sendCmd("oil_lvl.val=" + 0);
+  if(digitalRead(cool_lvl_pin) == 1) sendCmd("coolLvl.bco=" + String(63488));  // low coolant
+  else sendCmd("coolLvl.bco=" + String(26508));  
   
-  if(digitalRead(cool_lvl_pin) == 0) sendCmd("coollvl.val=" + 1);
-  else sendCmd("coollvl.val=" + 0);
-  /*
   if(nexSer.available() > 0)  // read data strings from Nextion Display
   {
     char Received = dbgSer.read();
@@ -476,9 +473,17 @@ void loop() {  // MAIN LOOP ****************************************************
     fan1 = map(curr_val[COOL_T], 180, 220, 80, 254);
     fan2 = map(curr_val[COOL_T], 180, 220, 80, 254);
   }
+  /*
+  #ifdef DEBUG3
+    // a/c CVC compressor - Deslug startup by starting with no flow then adding inital flow slowly to get oil and liquid moving prior to adding flow
+    dbgSer.print("ac_req= ");
+    dbgSer.print(digitalRead(ac_req_pin));  // 1 = key off, key on ac off = 0, ac on = 0, fan off = 1, fan on = 0
 
-  // a/c CVC compressor - Deslug startup by starting with no flow then adding inital flow slowly to get oil and liquid moving prior to adding flow
-  if(ac_req)  {
+    dbgSer.print(", ac_recirc= ");
+    dbgSer.println(digitalRead(ac_recirc_pin));  // 1 = key off, key on & ac off = 0, ac & recirc = 1
+  #endif
+
+  if(digitalRead(ac_req_pin) = 0)  {
     if(fan1 < 150) { 
       fan1 = 150;
     }
@@ -495,12 +500,13 @@ void loop() {  // MAIN LOOP ****************************************************
     }
     sendCmd(nexOut[2].text + String(ac_comp));
   }
+  */
 
   analogWrite(fan1_pin, fan1);
   analogWrite(fan2_pin, fan2);
 
-  // The following seems like a safey - redundant
-  if(curr_val[5] > 200)  {  // engine_t
+  // The following seems like a safety - redundant
+  if(curr_val[COOL_T] > 200)  {  // engine_t
     fan1 = 254;
     fan2 = 254;
     analogWrite(fan1_pin, fan1);
