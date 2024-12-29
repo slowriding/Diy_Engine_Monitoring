@@ -12,10 +12,17 @@
   * Please consider subbmitting improvements and/or rewrites
 
   * ToDo List
+
+  * Issues:
+  * Fan pwm outputs flick off every loop
+  * bar graph default backgrounds should be more subdued  
+  * AC press goes below 0
+  * cal evap and AC press
+  * oil level inop - rev 
+  * no alarm text in g0
   
   * 1-wire DS18xxx not working - wiring isssue
 
-  * Add Screen dimming
   * add counter if current value != last value to run anyway from time to time (refresh, timetarget?)
   * LCD inputs page add i_currents and rpm & VSS raw
   * add colors to all feilds
